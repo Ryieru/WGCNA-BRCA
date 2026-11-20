@@ -1,0 +1,64 @@
+{
+	"dataset": "TCGA breast invasive carcinoma (TCGA-BRCA) mRNA expression, mixOmics DIABLO version",
+	"source": "mixOmics TCGA.normalised.mixDIABLO.RData, object data.train$mrna",
+	"source_url": "http://mixomics.org/wp-content/uploads/2016/08/TCGA.normalised.mixDIABLO.RData_.zip",
+	"archived_source_url": "http://web.archive.org/web/20240502003807/http://mixomics.org/wp-content/uploads/2016/08/TCGA.normalised.mixDIABLO.RData_.zip",
+	"source_file_date": "2016-08-01",
+	"transformation": "natural logarithm of (1 + value), maximum absolute difference with the source 4.9e-15",
+	"value_range": [0.0078, 2.8175],
+	"missing_values": 0,
+	"gene_columns": 2000,
+	"gene_order": "same as the source",
+	"experimental_unit": "one primary breast tumor sample",
+	"row_identifier": "last four characters of the TCGA participant barcode",
+	"files": [
+		{
+			"file": "data/tests/mrna2_small.csv",
+			"sha256": "b83b1bbdd6f90233352d7346b6118e4511f850520d5d3ea1bdb8f405509761c5",
+			"rows": 50,
+			"rows_selection": "first 50 rows of mrna2_full.csv",
+			"subtype_counts": {
+				"Basal": 13,
+				"Her2": 4,
+				"LumA": 25,
+				"LumB": 8
+			}
+		},
+		{
+			"file": "data/tests/mrna2_medium.csv",
+			"sha256": "82e7b585bed384f8b5191d2ef82b36c3802ad18f70d272545f56005177c74ab3",
+			"rows": 175,
+			"rows_selection": "first 175 rows of mrna2_full.csv",
+			"subtype_counts": {
+				"Basal": 34,
+				"Her2": 16,
+				"LumA": 82,
+				"LumB": 43
+			}
+		},
+		{
+			"file": "data/tests/mrna2_large.csv",
+			"sha256": "e896e01ee7ad42244385188b29d73a1b051e71cb52873237caab8938fc2073f0",
+			"rows": 300,
+			"rows_selection": "first 300 rows of mrna2_full.csv",
+			"subtype_counts": {
+				"Basal": 61,
+				"Her2": 25,
+				"LumA": 152,
+				"LumB": 62
+			}
+		},
+		{
+			"file": "data/tests/mrna2_full.csv",
+			"sha256": "b287211297f7596242730bbe6e05a32610d34b0a69a9c9b4ff3d42541d8f979a",
+			"rows": 379,
+			"rows_selection": "every row of data.train$mrna, in the source order",
+			"subtype_counts": {
+				"Basal": 76,
+				"Her2": 38,
+				"LumA": 188,
+				"LumB": 77
+			}
+		}
+	]
+}

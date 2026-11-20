@@ -1,193 +1,142 @@
-# Gene Expression Module Analysis
+# WGCNA-BRCA
 
-Four-step pipeline: select the most variable genes, build a TOM matrix, identify gene modules, and compute their eigengenes.
+Weighted gene co-expression network analysis (WGCNA, Zhang and Horvath, 2005) groups genes whose
+expression rises and falls together across samples into modules. This repository implements WGCNA in
+four steps and applies it to the mRNA expression of 379 TCGA breast tumors (TCGA-BRCA).
 
-## Dependencies
+> Which gene co-expression modules structure the transcriptome of TCGA breast tumors, and how does the
+> tree-cutting method (static, adaptive, dynamic) change them?
 
-- Python 3.13.13
-- NumPy 2.2.6
-- SciPy 1.17.1
+## Requirements
 
-```bash
-python3 -m pip install numpy==2.2.6 scipy==1.17.1
-```
-
-Run the commands from the project root. `<datadir>` is the data directory and `<dataname>` is the CSV filename, including its extension.
+- uv 0.12.23
+- Python 3.13.13 or later
+- numpy 2.2.6 or later
+- scipy 1.17.1 or later
 
 ## Input format
 
-The input CSV contains gene names on the first row, an observation identifier in the first column, and numeric expression values in the remaining columns:
+The input CSV holds the gene names on the first row, a sample identifier in the first column, and the
+numeric expression values in the other columns:
 
-```text
+```
 ,GENE_A,GENE_B
-OBS_1,1.2,3.4
+SAMPLE_1,1.2,3.4
 ```
 
-## Usage
+## Run the steps
 
-### Step 1: select genes
+Run the commands from the project root. Each step reads its input from `<datadir>` and writes its
+output in `<datadir>`. `<dataname>` is the CSV file name, extension included. The examples use
+`results/`, which git ignores:
 
-Keeps the `K` genes with the highest variance.
-
-```bash
-python3 src/clean_dataset.py <datadir> <dataname> <K>
-# Output: <datadir>/<dataname>_cleaned_<K>.csv
+```
+mkdir -p results
+cp data/tests/mrna2_full.csv results/
 ```
 
-### Step 2: build the TOM matrix
+### Step 1 - keep the K genes of highest variance
 
-Automatically determines `beta` (`1 <= beta <= 30`, `R^2 > 0.8`):
-
-```bash
-python3 src/build_graph.py <datadir> <dataname> POW
-# Output: prints beta
+```
+uv run src/clean_dataset.py <datadir> <dataname> <K>
 ```
 
-Then builds the TOM matrix:
+Output: `<datadir>/<dataname>_cleaned_<K>.csv`
 
-```bash
-python3 src/build_graph.py <datadir> <dataname> TOM <beta>
-# Output: <datadir>/<dataname>_TOM_<beta>.csv
+### Step 2 - build the gene network
+
+```
+uv run src/build_graph.py <datadir> <dataname> POW
+uv run src/build_graph.py <datadir> <dataname> TOM <beta>
 ```
 
-### Step 3: identify modules
+`POW` prints the soft-thresholding power beta: the smallest integer from 1 to 30 whose scale-free fit
+reaches `R^2 > 0.8`, or 30 when none does. `TOM` writes the topological overlap matrix
+`<datadir>/<dataname>_TOM_<beta>.csv`.
 
-```bash
-python3 src/find_modules.py <datadir> <dataname> static <tau> <l>
-# Output: <datadir>/<dataname>_static_<l>_<tau>.csv
+### Step 3 - find the modules
 
-python3 src/find_modules.py <datadir> <dataname> adaptive <tau>
-# Output: <datadir>/<dataname>_adaptive_<tau>.csv
-
-python3 src/find_modules.py <datadir> <dataname> dynamic <tau>
-# Output: <datadir>/<dataname>_dynamic_<tau>.csv
+```
+uv run src/find_modules.py <datadir> <dataname> static <tau> <l>
+uv run src/find_modules.py <datadir> <dataname> adaptive <tau>
+uv run src/find_modules.py <datadir> <dataname> dynamic <tau>
 ```
 
-`tau` is an integer and `l` is a real number. Each output file contains one group identifier per gene, in the same order as the TOM matrix.
+`tau` is an integer and `l` a real number.
+Output: `<datadir>/<dataname>_static_<l>_<tau>.csv`, `<datadir>/<dataname>_adaptive_<tau>.csv` or
+`<datadir>/<dataname>_dynamic_<tau>.csv`, holding one module number per gene, in the order of the rows
+of the TOM matrix.
 
-### Step 4: extract eigengenes
+### Step 4 - compute the module eigengenes
 
-```bash
-python3 src/extract_eigen.py <datadir> <dataname> <groupname>
-# Output: <datadir>/<groupname>_eigen.csv
+```
+uv run src/extract_eigen.py <datadir> <dataname> <groupname>
 ```
 
-`<dataname>` is the expression file from step 1 and `<groupname>` is a file produced in step 3. Eigengene values are rounded to three decimal places.
+`<dataname>` is the output of step 1 and `<groupname>` the output of step 3.
+Output: `<datadir>/<groupname>_eigen.csv`, with eigengene values rounded to three decimals.
 
-## Tests
+### Full example
 
-```bash
-# Quick test
-python3 tests/run_tests.py --quick --no-color
-
-# Full test suite
-python3 tests/run_tests.py --no-color
-
-# Example: run step 1 only
-python3 tests/run_tests.py --palier 1 --datasets small --gene-counts 50 --no-color
+```
+uv run src/clean_dataset.py results mrna2_full.csv 100
+uv run src/build_graph.py results mrna2_full.csv_cleaned_100.csv POW
+uv run src/build_graph.py results mrna2_full.csv_cleaned_100.csv TOM 9
+uv run src/find_modules.py results mrna2_full.csv_cleaned_100.csv_TOM_9.csv dynamic 15
+uv run src/extract_eigen.py results mrna2_full.csv_cleaned_100.csv mrna2_full.csv_cleaned_100.csv_TOM_9.csv_dynamic_15.csv
 ```
 
-Test datasets and reference files are stored in `data/tests/`. Source files are in `src/` and the test runner is `tests/run_tests.py`.
+## Run the tests
 
-## Auteurs / Authors
-
-- Thomas Morin
-- Clovis Thoréton
-
----
-
-# Analyse de modules d'expression génétique
-
-Pipeline en quatre paliers : sélection des gènes variables, construction d'une matrice TOM, recherche de modules, puis calcul de leurs eigengenes.
-
-## Dépendances
-
-- Python 3.13.13
-- NumPy 2.2.6
-- SciPy 1.17.1
-
-```bash
-python3 -m pip install numpy==2.2.6 scipy==1.17.1
+```
+uv run tests/run_tests.py
 ```
 
-Les commandes sont à exécuter depuis la racine du projet. `<datadir>` est le dossier des données et `<dataname>` le nom du fichier CSV, extension comprise.
+The suite runs every step on the four input files and compares each output with the reference outputs
+of `data/tests/190727_current/`. `--quick` limits it to `mrna2_small.csv` with K = 50, `--palier <n>`
+to one step, and `--help` lists the other options.
 
-## Format d'entrée
+## Project structure
 
-Le fichier CSV contient les noms des gènes sur la première ligne, un identifiant d'observation dans la première colonne, puis les valeurs numériques d'expression :
-
-```text
-,GENE_A,GENE_B
-OBS_1,1.2,3.4
+```
+WGCNA-BRCA/
+|-- data/
+|   |-- MANIFEST.json (provenance, transformation and checksums of the input files)
+|   |-- DATA_DICTIONARY.md (meaning and format of the input and reference files)
+|   |-- pdfs/ (articles of the method)
+|   `-- tests/ (input files and reference outputs)
+|-- src/
+|   |-- csv_utils.py (reading and writing of the CSV files)
+|   |-- clean_dataset.py (step 1)
+|   |-- build_graph.py (step 2)
+|   |-- find_modules.py (step 3)
+|   `-- extract_eigen.py (step 4)
+|-- tests/
+|   `-- run_tests.py (test entry point)
+`-- results/ (outputs of the examples)
 ```
 
-## Utilisation
+## Data
 
-### Palier 1 : sélection des gènes
+The input files are the mRNA block of the 379 training tumors of the normalised TCGA-BRCA data built by
+the mixOmics team for DIABLO, with each value `x` replaced by `ln(1 + x)`. Their provenance is detailed
+in `data/MANIFEST.json`, their meaning and limits in `data/DATA_DICTIONARY.md`.
 
-Conserve les `K` gènes de plus forte variance.
+## Authors
 
-```bash
-python3 src/clean_dataset.py <datadir> <dataname> <K>
-# Sortie : <datadir>/<dataname>_cleaned_<K>.csv
-```
+Thomas Morin and Clovis Thoreton.
 
-### Palier 2 : matrice TOM
+## References
 
-Calcule automatiquement `beta` (`1 <= beta <= 30`, `R^2 > 0.8`) :
-
-```bash
-python3 src/build_graph.py <datadir> <dataname> POW
-# Sortie : affiche beta
-```
-
-Construit ensuite la matrice TOM :
-
-```bash
-python3 src/build_graph.py <datadir> <dataname> TOM <beta>
-# Sortie : <datadir>/<dataname>_TOM_<beta>.csv
-```
-
-### Palier 3 : modules
-
-```bash
-python3 src/find_modules.py <datadir> <dataname> static <tau> <l>
-# Sortie : <datadir>/<dataname>_static_<l>_<tau>.csv
-
-python3 src/find_modules.py <datadir> <dataname> adaptive <tau>
-# Sortie : <datadir>/<dataname>_adaptive_<tau>.csv
-
-python3 src/find_modules.py <datadir> <dataname> dynamic <tau>
-# Sortie : <datadir>/<dataname>_dynamic_<tau>.csv
-```
-
-`tau` est un entier ; `l` est un nombre réel. Les fichiers produits contiennent un identifiant de groupe par gène, dans l'ordre des lignes et colonnes de la matrice TOM.
-
-### Palier 4 : eigengenes
-
-```bash
-python3 src/extract_eigen.py <datadir> <dataname> <groupname>
-# Sortie : <datadir>/<groupname>_eigen.csv
-```
-
-`<dataname>` est le fichier d'expression du palier 1 et `<groupname>` un fichier produit au palier 3. Les eigengenes sont arrondis à trois décimales.
-
-## Tests
-
-```bash
-# Test rapide
-python3 tests/run_tests.py --quick --no-color
-
-# Tous les tests
-python3 tests/run_tests.py --no-color
-
-# Exemple : tester uniquement le palier 1
-python3 tests/run_tests.py --palier 1 --datasets small --gene-counts 50 --no-color
-```
-
-Les jeux de données et fichiers de référence sont dans `data/tests/`. Le code source se trouve dans `src/` et le lanceur de tests dans `tests/run_tests.py`.
-
-## Auteurs
-
-- Thomas Morin
-- Clovis Thoréton
+- Zhang B, Horvath S (2005). A general framework for weighted gene co-expression network analysis.
+  *Statistical Applications in Genetics and Molecular Biology*, 4(1), 17. https://doi.org/10.2202/1544-6115.1128
+- Langfelder P, Zhang B, Horvath S (2008). Defining clusters from a hierarchical cluster tree: the
+  Dynamic Tree Cut package for R. *Bioinformatics*, 24(5), 719-720. https://doi.org/10.1093/bioinformatics/btm563
+- Morabito S, Reese F, Rahimzadeh N, Miyoshi E, Swarup V (2023). hdWGCNA identifies co-expression
+  networks in high-dimensional transcriptomics data. *Cell Reports Methods*, 3(6), 100498.
+  https://doi.org/10.1016/j.crmeth.2023.100498
+- Singh A, Shannon CP, Gautier B, Rohart F, Vacher M, Tebbutt SJ, Le Cao KA (2019). DIABLO: an
+  integrative approach for identifying key molecular drivers from multi-omics assays. *Bioinformatics*,
+  35(17), 3055-3062. https://doi.org/10.1093/bioinformatics/bty1054
+- The Cancer Genome Atlas Network (2012). Comprehensive molecular portraits of human breast tumours.
+  *Nature*, 490, 61-70. https://doi.org/10.1038/nature11412
