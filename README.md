@@ -4,9 +4,6 @@ Weighted gene co-expression network analysis (WGCNA, Zhang and Horvath, 2005) gr
 expression rises and falls together across samples into modules. This repository implements WGCNA in
 four steps and applies it to the mRNA expression of 379 TCGA breast tumors (TCGA-BRCA).
 
-> Which gene co-expression modules structure the transcriptome of TCGA breast tumors, and how does the
-> tree-cutting method (static, adaptive, dynamic) change them?
-
 ## Requirements
 
 - uv 0.12.23
